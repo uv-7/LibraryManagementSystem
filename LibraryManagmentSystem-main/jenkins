@@ -1,0 +1,40 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
+        DOCKER_IMAGE = 'your-docker-username/your-image-name:tag'  // Replace with your Docker image details
+    }
+
+    stages {
+        stage('Pull Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+                        docker.image("${DOCKER_IMAGE}").pull()
+                    }
+                }
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                script {
+                    docker.image("${DOCKER_IMAGE}").inside('-u root') {
+                        sh 'pytest'
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+                        docker.image("${DOCKER_IMAGE}").run('--rm -d -p 8080:5000 -v C:/absolute/path/to/your/app:/app ${DOCKER_IMAGE}')
+                    }
+                }
+            }
+        }
+    }
+}
